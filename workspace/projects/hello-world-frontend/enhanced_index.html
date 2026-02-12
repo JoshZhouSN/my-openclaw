@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello World Frontend</title>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #ff6b6b;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --transition-speed: 0.3s;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            --border-radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--light-color);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background elements */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            animation: float 15s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(-100%) rotate(360deg); }
+        }
+
+        .container {
+            text-align: center;
+            padding: 3rem 2rem;
+            border-radius: var(--border-radius);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: var(--shadow);
+            max-width: 800px;
+            width: 90%;
+            z-index: 10;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transform-style: preserve-3d;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .greeting-card {
+            position: relative;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .greeting-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color), var(--secondary-color));
+            z-index: -1;
+            border-radius: calc(var(--border-radius) + 2px);
+            animation: gradient-border 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes gradient-border {
+            0% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(to right, #fff, #e2e2e2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+            to { text-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 30px rgba(255, 255, 255, 0.4); }
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .feature-desc {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .interactive-section {
+            margin: 2rem 0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 1.5rem 0;
+        }
+
+        button {
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: 0.5s;
+            z-index: -1;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        button:active {
+            transform: translateY(-1px);
+        }
+
+        .primary-btn {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .secondary-btn {
+            background: rgba(255, 107, 107, 0.2);
+        }
+
+        .success-btn {
+            background: rgba(76, 209, 55, 0.2);
+        }
+
+        .dynamic-content {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: var(--border-radius);
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dynamic-text {
+            font-size: 1.3rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .counter-display {
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .accessibility-info {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .floating-elements {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .floating-element {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float-element 15s infinite linear;
+        }
+
+        @keyframes float-element {
+            0% { 
+                transform: translate(0, 0) rotate(0deg); 
+                opacity: 0.3;
+            }
+            100% { 
+                transform: translate(calc(100vw - 50px), calc(100vh - 50px)) rotate(360deg); 
+                opacity: 0;
+            }
+        }
+
+        /* Animation classes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .container {
+                padding: 2rem 1.5rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            .container {
+                border: 2px solid white;
+            }
+            
+            button {
+                border: 2px solid white;
+            }
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Focus styles for keyboard navigation */
+        .focusable:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating background elements -->
+    <div class="floating-elements" aria-hidden="true">
+        <div class="floating-element" style="top: 10%; left: 20%; width: 30px; height: 30px; animation-delay: 0s;"></div>
+        <div class="floating-element" style="top: 30%; left: 70%; width: 40px; height: 40px; animation-delay: -2s;"></div>
+        <div class="floating-element" style="top: 60%; left: 40%; width: 25px; height: 25px; animation-delay: -4s;"></div>
+        <div class="floating-element" style="top: 80%; left: 10%; width: 35px; height: 35px; animation-delay: -6s;"></div>
+        <div class="floating-element" style="top: 40%; left: 85%; width: 20px; height: 20px; animation-delay: -8s;"></div>
+    </div>
+
+    <div class="container" role="main" tabindex="-1">
+        <div class="greeting-card">
+            <h1 aria-label="Hello, World!">Hello, World!</h1>
+            <p class="subtitle" id="subtitle">Welcome to this beautiful frontend page created with HTML, CSS, and JavaScript</p>
+        </div>
+
+        <div class="features-grid" aria-labelledby="features-heading">
+            <h2 id="features-heading" class="sr-only">Features</h2>
+            <div class="feature-card" role="region" aria-labelledby="feature1-title">
+                <h3 class="feature-title" id="feature1-title">Modern Design</h3>
+                <p class="feature-desc">Using latest CSS techniques</p>
+            </div>
+            <div class="feature-card" role="region" aria-labelledby="feature2-title">
+                <h3 class="feature-title" id="feature2-title">Accessibility</h3>
+                <p class="feature-desc">Built with a11y in mind</p>
+            </div>
+            <div class="feature-card" role="region" aria-labelledby="feature3-title">
+                <h3 class="feature-title" id="feature3-title">Interactive</h3>
+                <p class="feature-desc">Engaging user experience</p>
+            </div>
+        </div>
+
+        <div class="interactive-section" role="region" aria-labelledby="interactive-heading">
+            <h2 id="interactive-heading">Interactive Elements</h2>
+            <div class="btn-group">
+                <button class="primary-btn focusable" id="clickBtn" aria-describedby="click-description" onclick="changeMessage()">
+                    Click Me!
+                </button>
+                <button class="secondary-btn focusable" id="themeBtn" aria-describedby="theme-description" onclick="toggleTheme()">
+                    Change Theme
+                </button>
+                <button class="success-btn focusable" id="animateBtn" aria-describedby="animate-description" onclick="animateContainer()">
+                    Animate
+                </button>
+            </div>
+        </div>
+
+        <div class="dynamic-content" role="status" aria-live="polite">
+            <p class="dynamic-text" id="dynamic-text" aria-label="Dynamic message display">Ready to interact!</p>
+        </div>
+        <div class="counter-display" id="counter-display">Clicks: 0</div>
+
+        <div class="accessibility-info" aria-label="Accessibility information">
+            <p>This page is fully accessible with keyboard navigation and screen readers.</p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize counter
+        let clickCount = 0;
+        
+        // Messages for the dynamic text
+        const messages = [
+            "You clicked me! 🎉",
+            "Hello again! 👋",
+            "Nice click! ✨",
+            "Amazing! 🌟",
+            "Wonderful! 🎊",
+            "Great job! 👍",
+            "Fantastic! 🚀",
+            "Awesome! 💥",
+            "Incredible! 🌈",
+            "Superb! 🏆"
+        ];
+        
+        // Store original colors for theme toggle
+        const originalColors = {
+            primary: '#667eea',
+            secondary: '#764ba2'
+        };
+        
+        // Store dark theme colors
+        const darkThemeColors = {
+            primary: '#1a1a2e',
+            secondary: '#16213e'
+        };
+        
+        // Function to change message
+        function changeMessage() {
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            const dynamicTextElement = document.getElementById('dynamic-text');
+            
+            // Add animation class
+            dynamicTextElement.classList.add('pulse');
+            
+            // Update text
+            dynamicTextElement.textContent = randomMessage;
+            dynamicTextElement.setAttribute('aria-label', `Message updated to: ${randomMessage}`);
+            
+            // Update click count
+            clickCount++;
+            document.getElementById('counter-display').textContent = `Clicks: ${clickCount}`;
+            
+            // Remove animation class after it completes
+            setTimeout(() => {
+                dynamicTextElement.classList.remove('pulse');
+            }, 2000);
+        }
+        
+        // Function to toggle theme
+        function toggleTheme() {
+            const body = document.body;
+            const currentBg = getComputedStyle(body).background;
+            
+            if (currentBg.includes(originalColors.primary)) {
+                // Switch to dark theme
+                body.style.background = `linear-gradient(135deg, ${darkThemeColors.primary} 0%, ${darkThemeColors.secondary} 100%)`;
+                document.getElementById('subtitle').textContent = "Dark theme activated!";
+            } else {
+                // Switch back to original theme
+                body.style.background = `linear-gradient(135deg, ${originalColors.primary} 0%, ${originalColors.secondary} 100%)`;
+                document.getElementById('subtitle').textContent = "Light theme restored!";
+            }
+        }
+        
+        // Function to animate container
+        function animateContainer() {
+            const container = document.querySelector('.container');
+            container.classList.add('pulse');
+            
+            setTimeout(() => {
+                container.classList.remove('pulse');
+            }, 2000);
+        }
+        
+        // Add mouse move parallax effect
+        document.addEventListener('mousemove', (e) => {
+            const container = document.querySelector('.container');
+            if (!container) return;
+            
+            const xAxis = (window.innerWidth / 2 - e.pageX) / 25;
+            const yAxis = (window.innerHeight / 2 - e.pageY) / 25;
+            container.style.transform = `perspective(1000px) rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+        });
+        
+        // Add keyboard navigation support
+        document.addEventListener('keydown', (e) => {
+            // Space or Enter on buttons
+            if ((e.key === ' ' || e.key === 'Enter') && e.target.tagName === 'BUTTON') {
+                e.preventDefault();
+                e.target.click();
+            }
+            
+            // Escape key to reset container position
+            if (e.key === 'Escape') {
+                const container = document.querySelector('.container');
+                if (container) {
+                    container.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg)';
+                }
+            }
+        });
+        
+        // Add focus management for better accessibility
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('focus', () => {
+                button.style.transform = 'translateY(-3px)';
+            });
+            
+            button.addEventListener('blur', () => {
+                button.style.transform = '';
+            });
+        });
+        
+        // Initialize floating elements with random positions
+        function initFloatingElements() {
+            const floatingContainer = document.querySelector('.floating-elements');
+            if (!floatingContainer) return;
+            
+            // Clear existing elements
+            floatingContainer.innerHTML = '';
+            
+            // Create new random floating elements
+            for (let i = 0; i < 8; i++) {
+                const element = document.createElement('div');
+                element.className = 'floating-element';
+                
+                // Random size and position
+                const size = Math.floor(Math.random() * 30) + 10;
+                const top = Math.random() * 100;
+                const left = Math.random() * 100;
+                const delay = Math.random() * 20;
+                
+                element.style.width = `${size}px`;
+                element.style.height = `${size}px`;
+                element.style.top = `${top}%`;
+                element.style.left = `${left}%`;
+                element.style.animationDelay = `-${delay}s`;
+                
+                floatingContainer.appendChild(element);
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initFloatingElements();
+            
+            // Add loading animation to elements
+            const elements = document.querySelectorAll('.greeting-card, .feature-card, .interactive-section');
+            elements.forEach((el, index) => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                }, 300 + (index * 100));
+            });
+        });
+        
+        // Handle window resize for responsive design
+        window.addEventListener('resize', () => {
+            // Reset floating elements on resize to prevent overlapping
+            setTimeout(initFloatingElements, 500);
+        });
+        
+        // Add screen reader announcements
+        function announceToScreenReader(message) {
+            const announcement = document.createElement('div');
+            announcement.setAttribute('aria-live', 'assertive');
+            announcement.setAttribute('aria-atomic', 'true');
+            announcement.className = 'sr-only';
+            announcement.style.position = 'absolute';
+            announcement.style.left = '-10000px';
+            announcement.style.width = '1px';
+            announcement.style.height = '1px';
+            announcement.style.overflow = 'hidden';
+            
+            announcement.textContent = message;
+            document.body.appendChild(announcement);
+            
+            setTimeout(() => {
+                document.body.removeChild(announcement);
+            }, 1000);
+        }
+    </script>
+
+    <!-- Hidden elements for screen readers -->
+    <div class="sr-only" style="position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden;">
+        <p id="click-description">Click this button to display a random greeting message</p>
+        <p id="theme-description">Toggle between light and dark themes</p>
+        <p id="animate-description">Animate the main container with a pulsing effect</p>
+    </div>
+</body>
+</html>
