@@ -69,7 +69,6 @@ test_output/
 .augment/
 .claude/
 .clawdhub/
-.clawhub/
 .cline/
 .codebuddy/
 .codex/
@@ -100,6 +99,11 @@ test_output/
 .vibe/
 .windsurf/
 .zencoder/
+
+# 但保留 ClawHub 的 lock.json（已安装 skills 列表）
+!.clawhub/
+.clawhub/*
+!.clawhub/lock.json
 
 # 保留 .github 用于 GitHub Actions/配置
 !.github/

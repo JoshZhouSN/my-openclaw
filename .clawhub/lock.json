@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "skills": {
+    "browser-use": {
+      "version": "1.0.0",
+      "installedAt": 1769625924540
+    },
+    "super-websearch-realtime": {
+      "version": "1.0.0",
+      "installedAt": 1769778323079
+    },
+    "agent-browser": {
+      "version": "0.2.0",
+      "installedAt": 1769625935296
+    },
+    "tavily-search": {
+      "version": "1.0.0",
+      "installedAt": 1769778332049
+    },
+    "search-x": {
+      "version": "1.0.0",
+      "installedAt": 1769778758222
+    },
+    "twitter-content-retrieval": {
+      "version": "1.0.0",
+      "installedAt": 1769913800000
+    },
+    "opencode-controller": {
+      "version": "1.0.0",
+      "installedAt": 1769864219904
+    },
+    "clawddocs": {
+      "version": "1.2.2",
+      "installedAt": 1770017433499
+    },
+    "auto-updater": {
+      "version": "1.0.0",
+      "installedAt": 1770022517445
+    },
+    "update-plus": {
+      "version": "4.0.3",
+      "installedAt": 1770022979889
+    }
+  }
+}
