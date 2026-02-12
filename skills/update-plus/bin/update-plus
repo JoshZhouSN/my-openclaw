@@ -1,0 +1,316 @@
+#!/usr/bin/env bash
+# Update Plus v4.0.3
+# Full backup, update, and restore for OpenClaw
+# Author: hopyky
+# License: MIT
+
+set -euo pipefail
+
+# Script directory (resolve symlinks)
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+
+# Source all modules
+source "${SCRIPT_DIR}/lib/utils.sh"
+source "${SCRIPT_DIR}/lib/config.sh"
+source "${SCRIPT_DIR}/lib/backup.sh"
+source "${SCRIPT_DIR}/lib/restore.sh"
+source "${SCRIPT_DIR}/lib/update.sh"
+source "${SCRIPT_DIR}/lib/notify.sh"
+source "${SCRIPT_DIR}/lib/cron.sh"
+
+# Global options
+DRY_RUN=false
+FORCE_UPDATE=false
+CHECK_DISK=true
+NOTIFICATION_ENABLED=false
+NO_BACKUP_CLI=false
+
+# Show version
+show_version() {
+  echo "Update Plus v4.0.3"
+}
+
+# Show help
+show_help() {
+  cat <<'EOF'
+Update Plus v4.0.3
+Full backup, update, and restore for OpenClaw.
+
+USAGE
+  update-plus <command> [options]
+
+COMMANDS
+  backup                       Create a backup of configured paths
+  list-backups                 List available backups
+  update                       Update OpenClaw and all skills (with backup)
+  restore <id> [label]         Restore from backup (optionally specific label)
+  diff-backups <a> <b>         Compare two backups
+  check                        Check for available updates
+  install-cron [schedule]      Install automatic update cron job
+  uninstall-cron               Remove the cron job
+
+OPTIONS
+  --dry-run               Preview changes without modifying anything
+  --no-backup             Skip backup before update
+  --no-check-disk         Skip disk space check
+  --force                 Continue even if backup fails
+  --notify                Force send notification
+  -h, --help              Show this help
+  -v, --version           Show version
+
+CONFIGURATION
+  Config file: ~/.openclaw/update-plus.json
+
+  Example config:
+    {
+      "backup_dir": "~/.openclaw/backups",
+      "backup_before_update": true,
+      "backup_count": 5,
+      "backup_paths": [
+        {"path": "~/.openclaw", "label": "config", "exclude": ["backups", "logs"]},
+        {"path": "~/.openclaw/workspace", "label": "workspace", "exclude": ["node_modules"]}
+      ],
+      "skills_dirs": [
+        {"path": "~/.openclaw/skills", "label": "prod", "update": true}
+      ],
+      "notifications": {
+        "enabled": true,
+        "target": "+1234567890"
+      },
+      "connection_retries": 3,
+      "connection_retry_delay": 60
+    }
+
+EXAMPLES
+  update-plus backup
+  update-plus update --dry-run
+  update-plus restore backup.tar.gz
+  update-plus restore backup.tar.gz config
+  update-plus check
+  update-plus install-cron "0 3 * * *"
+
+For full documentation: https://github.com/hopyky/update-plus
+EOF
+}
+
+# Main command dispatcher
+main() {
+  local positional_args=()
+
+  # Parse arguments
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dry-run)
+        DRY_RUN=true
+        shift
+        ;;
+      --no-backup)
+        NO_BACKUP_CLI=true
+        shift
+        ;;
+      --no-check-disk)
+        CHECK_DISK=false
+        shift
+        ;;
+      --force)
+        FORCE_UPDATE=true
+        shift
+        ;;
+      --notify)
+        NOTIFICATION_ENABLED=true
+        shift
+        ;;
+      -h|--help)
+        show_help
+        exit 0
+        ;;
+      -v|--version)
+        show_version
+        exit 0
+        ;;
+      -*)
+        log_error "Unknown option: $1"
+        show_help
+        exit 1
+        ;;
+      *)
+        positional_args+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  # Get command
+  local command="${positional_args[0]:-check}"
+
+  # Load configuration
+  load_config
+  validate_config || exit 1
+
+  # Apply CLI overrides (after config load)
+  if [[ "$NO_BACKUP_CLI" == true ]]; then
+    BACKUP_BEFORE_UPDATE="false"
+  fi
+
+  # Detect workspace
+  detect_workspace
+
+  # Dispatch command
+  case "$command" in
+    backup)
+      create_backup || exit 1
+      ;;
+
+    list-backups)
+      list_backups || exit 1
+      ;;
+
+    update)
+      cmd_update
+      ;;
+
+    restore)
+      restore_backup "${positional_args[@]:1}" || exit 1
+      ;;
+
+    diff-backups)
+      diff_backups "${positional_args[@]:1}" || exit 1
+      ;;
+
+    check)
+      check_updates
+      ;;
+
+    install-cron)
+      install_cron "${positional_args[1]:-}"
+      ;;
+
+    uninstall-cron)
+      uninstall_cron
+      ;;
+
+    *)
+      log_error "Unknown command: $command"
+      show_help
+      exit 1
+      ;;
+  esac
+}
+
+# Update command with full workflow
+cmd_update() {
+  if [[ "$DRY_RUN" == true ]]; then
+    echo ""
+    log_warning "DRY-RUN MODE - No changes will be made"
+    echo ""
+  fi
+
+  log_info "Starting update process..."
+  log_to_file "=== Update started $(date '+%Y-%m-%d %H:%M:%S') ==="
+
+  # Check disk space
+  if ! check_disk_space; then
+    send_notification "error" "Insufficient disk space"
+    exit 1
+  fi
+
+  # Check internet connection (with retry)
+  if ! check_connection; then
+    send_notification "error" "No internet connection"
+    exit 1
+  fi
+
+  # Check if updates are available BEFORE backup
+  if ! has_updates_available; then
+    if [[ "$FORCE_UPDATE" != true ]]; then
+      echo ""
+      log_success "Already up to date! No backup needed."
+      log_to_file "=== No updates available, skipping $(date '+%Y-%m-%d %H:%M:%S') ==="
+      # Silent exit - no notification for "nothing to do"
+      exit 0
+    else
+      log_warning "No updates available, but --force is enabled. Continuing..."
+    fi
+  fi
+
+  # Create backup if enabled (only if updates are available)
+  local backup_name=""
+  if [[ "$BACKUP_BEFORE_UPDATE" == "true" ]]; then
+    if ! backup_name=$(create_backup); then
+      if [[ "$FORCE_UPDATE" == true ]]; then
+        log_warning "Backup failed, but --force is enabled. Continuing..."
+      else
+        log_error "Backup failed. Use --force to continue without backup."
+        send_notification "error" "Backup creation failed"
+        exit 1
+      fi
+    fi
+  fi
+
+  # Update OpenClaw (only if update available)
+  if [[ "$OPENCLAW_UPDATE_AVAILABLE" == true ]]; then
+    if ! update_bot; then
+      log_error "OpenClaw update failed"
+      send_notification "error" "OpenClaw update failed"
+      exit 1
+    fi
+  else
+    log_info "OpenClaw already up to date, skipping..."
+  fi
+
+  # Update skills (only if updates available)
+  if [[ "$SKILLS_UPDATE_AVAILABLE" == true ]]; then
+    update_skills
+  else
+    log_info "All skills already up to date, skipping..."
+  fi
+
+  # Build summary
+  local summary=""
+  if [[ "$BOT_UPDATED" == true ]]; then
+    summary+="OpenClaw: updated\n"
+  else
+    summary+="OpenClaw: no update\n"
+  fi
+
+  if [[ "$SKILLS_UPDATED" -gt 0 ]]; then
+    summary+="Skills: $SKILLS_UPDATED updated\n"
+  else
+    summary+="Skills: no update\n"
+  fi
+
+  if [[ -n "$backup_name" ]]; then
+    summary+="Backup: $backup_name"
+  else
+    summary+="Backup: none"
+  fi
+
+  # Success
+  echo ""
+  log_success "Update completed!"
+  log_to_file "=== Update completed $(date '+%Y-%m-%d %H:%M:%S') ==="
+
+  if [[ -n "$backup_name" ]]; then
+    log_info "Backup: $backup_name"
+  fi
+
+  # Send notification with details
+  if [[ "$BOT_UPDATED" == true ]] || [[ "$SKILLS_UPDATED" -gt 0 ]]; then
+    send_notification "success" "$summary"
+  else
+    # Nothing was updated - still notify but with different message
+    send_notification "info" "$summary"
+  fi
+
+  # Clean logs
+  clean_logs
+}
+
+# Run main
+main "$@"
