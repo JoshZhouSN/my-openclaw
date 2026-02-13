@@ -1,0 +1,21 @@
+{
+  "id": "worker",
+  "name": "Worker Subagent",
+  "description": "Specialized worker for parallel task execution",
+  "model": "qwen-portal/coder-model",
+  "workspace": "/home/ubuntu/clawd",
+  "skills": [
+    "web_fetch",
+    "read",
+    "write",
+    "exec"
+  ],
+  "concurrency": 4,
+  "timeoutSeconds": 120,
+  "capabilities": [
+    "web_fetch",
+    "browser_control",
+    "file_operations",
+    "shell_execution"
+  ]
+}
