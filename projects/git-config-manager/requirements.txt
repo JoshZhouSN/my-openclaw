@@ -1,0 +1,4 @@
+gitpython==3.1.40
+jsonschema==4.20.0
+pytest==7.4.3
+pytest-cov==4.1.0

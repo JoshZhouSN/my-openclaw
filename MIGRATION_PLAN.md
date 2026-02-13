@@ -210,3 +210,4 @@ mv ~/clawd.backup ~/clawd
 2. **保持会话** 迁移过程中现有会话应该不受影响
 3. **测试顺序** 先测试读取，再测试写入，最后测试新会话
 4. **备份策略** Update Plus 会在下次运行时自动备份新位置
+# Migration completed on Fri Feb 13 13:41:29 UTC 2026
