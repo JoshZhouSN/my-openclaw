@@ -10,13 +10,33 @@
 
 ## 📋 恢复前准备
 
-### 需要准备的信息
+### ⚡ 快速恢复 vs 完整恢复
 
-在开始恢复前，确保你有以下信息：
+#### 方式一：Update Plus 备份恢复（推荐，30分钟）
+
+如果你有 Update Plus 备份文件，**可以跳过大部分 API Key 配置**！
+
+Update Plus 备份包含：
+- ✅ `~/.openclaw/openclaw.json` - 包含所有 API Keys 和配置
+- ✅ `~/.openclaw/credentials/` - 敏感凭证（OAuth tokens）
+- ✅ `~/.openclaw/config.json` - 主配置
+- ✅ `~/.openclaw/workspace/` - 工作区完整数据
+
+**需要准备：**
+| 信息 | 来源 | 用途 |
+|------|------|------|
+| **Update Plus 备份文件** | `~/.openclaw/backups/` | 恢复所有配置和数据 |
+| **GitHub 仓库访问** | SSH Key 或 Token | 拉取最新代码 |
+| **Telegram Bot Token** | @BotFather | 重新配对（Token 会变）|
+
+#### 方式二：从零完整配置（2小时）
+
+如果没有备份，需要准备：
 
 | 信息 | 来源 | 用途 |
 |------|------|------|
 | **NVIDIA API Key** | https://build.nvidia.com/ | Kimi 模型访问 |
+| **Qwen Portal OAuth** | https://portal.qwen.ai/ | Qwen Coder/Vision 模型 |
 | **Telegram Bot Token** | @BotFather | Telegram 消息推送 |
 | **Gmail App Password** | Google 账户设置 | 邮件发送/接收 |
 | **GitHub 仓库访问** | SSH Key 或 Token | 代码拉取 |
@@ -50,6 +70,62 @@
 - 工作区从 `~/clawd/` 迁移到 `~/.openclaw/workspace/`
 - `~/clawd` 现在是软链接，指向 `~/.openclaw/workspace/`
 - Skills 现在在 `~/.openclaw/workspace/skills/`（原来是 `~/.openclaw/skills/`）
+
+---
+
+## ⚡ 快速恢复：Update Plus 备份（30分钟）
+
+如果你有 Update Plus 备份文件，这是最快速的恢复方式。
+
+### 前提条件
+
+- Update Plus 备份文件（`openclaw-backup-YYYY-MM-DD-HHMMSS.tar.gz`）
+- 系统已安装基础依赖（Node.js, Python, git, jq）
+
+### 快速恢复步骤
+
+```bash
+# 1. 创建目录结构
+mkdir -p ~/.openclaw
+mkdir -p ~/bin
+
+# 2. 解压备份
+tar -xzf openclaw-backup-YYYY-MM-DD-HHMMSS.tar.gz -C /tmp/restore
+
+# 3. 恢复 OpenClaw 配置
+cp -r /tmp/restore/config/* ~/.openclaw/
+
+# 4. 恢复工作区
+mkdir -p ~/.openclaw/workspace
+cp -r /tmp/restore/workspace/* ~/.openclaw/workspace/
+
+# 5. 创建向后兼容软链接
+ln -s ~/.openclaw/workspace ~/clawd
+
+# 6. 创建 update-plus 软链接
+ln -s ~/.openclaw/workspace/skills/update-plus/bin/update-plus ~/bin/update-plus
+
+# 7. 安装 OpenClaw（如果未安装）
+npm install -g openclaw
+
+# 8. 重新配对 Telegram（Token 可能已过期）
+openclaw pairing telegram
+
+# 9. 启动 Gateway
+openclaw gateway start
+```
+
+### 备份中包含的敏感信息
+
+✅ **会自动恢复（无需重新配置）：**
+- `openclaw.json` - 所有 API Keys（NVIDIA, Qwen, etc.）
+- `credentials/` - OAuth tokens, Telegram session
+- `config.json` - 代理配置
+- `workspace/` - 所有代码、记忆、技能
+
+⚠️ **需要重新配置：**
+- Telegram Bot Token（可能过期，需要 @BotFather 重新获取）
+- 部分 OAuth 授权可能需要重新登录
 
 ---
 
@@ -204,7 +280,33 @@ nano ~/.openclaw/openclaw.json
 }
 ```
 
-#### 3.2.2 Telegram Bot Token
+#### 3.2.2 Qwen Portal OAuth（用于 Qwen Coder/Vision）
+
+**获取方式：**
+1. 访问 https://portal.qwen.ai/
+2. 使用 GitHub 账号登录
+3. 在设置中查看或刷新 OAuth Token
+
+**填入位置：**
+```json
+{
+  "models": {
+    "providers": {
+      "qwen-portal": {
+        "baseUrl": "https://portal.qwen.ai/v1",
+        "apiKey": "qwen-YOUR_OAUTH_TOKEN_HERE",
+        "api": "openai-completions"
+      }
+    }
+  }
+}
+```
+
+**可用模型：**
+- `coder-model` - Qwen Coder（代码生成）
+- `vision-model` - Qwen Vision（图像理解）
+
+#### 3.2.3 Telegram Bot Token
 
 **获取方式：**
 1. 在 Telegram 中搜索 @BotFather
