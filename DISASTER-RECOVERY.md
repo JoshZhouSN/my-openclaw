@@ -2,7 +2,8 @@
 
 > 目标：从零开始，2 小时内完全恢复所有功能
 > 适用范围：Ubuntu 22.04+ / Debian 系统
-> 最后更新：2026-02-12
+> 最后更新：2026-02-13
+> 架构版本：OpenClaw 标准架构 v2.0
 > 由 Big-J 维护
 
 ---
@@ -20,6 +21,35 @@
 | **Gmail App Password** | Google 账户设置 | 邮件发送/接收 |
 | **GitHub 仓库访问** | SSH Key 或 Token | 代码拉取 |
 | **Healthchecks.io URL** | 本手册下方 | 监控检查点 |
+
+### 架构说明（重要！）
+
+本手册基于 **OpenClaw 标准架构**：
+
+```
+~/.openclaw/                    ← OpenClaw 根目录
+├── workspace/                  ← 实际工作区（Git管理）✅
+│   ├── AGENTS.md, SOUL.md...  ← 核心配置文档
+│   ├── memory/                 ← 记忆日志
+│   ├── skills/                 ← 用户技能（15个）
+│   ├── documents/              ← 文档
+│   ├── projects/               ← 项目
+│   ├── scripts/                ← 脚本
+│   └── .git/                   ← Git仓库
+│
+├── config.json                 ← OpenClaw主配置
+├── openclaw.json              ← 运行时状态
+├── update-plus.json           ← Update Plus配置
+├── backups/                   ← 备份文件
+└── ...运行时数据
+
+~/clawd -> ~/.openclaw/workspace  ← 向后兼容软链接
+```
+
+**关键变化（2026-02-13 迁移后）：**
+- 工作区从 `~/clawd/` 迁移到 `~/.openclaw/workspace/`
+- `~/clawd` 现在是软链接，指向 `~/.openclaw/workspace/`
+- Skills 现在在 `~/.openclaw/workspace/skills/`（原来是 `~/.openclaw/skills/`）
 
 ---
 
@@ -43,12 +73,12 @@ sudo apt install -y msmtp msmtp-mta mbsync ripmime mailutils
 # 安装 Python 和 pip
 sudo apt install -y python3 python3-pip python3-venv
 
-# 安装 Node.js (v20+)
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+# 安装 Node.js (v22+)
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
 
 # 验证安装
-node --version  # 应 >= v20.0.0
+node --version  # 应 >= v22.0.0
 npm --version   # 应 >= 10.0.0
 python3 --version  # 应 >= 3.10
 ```
@@ -77,7 +107,7 @@ playwright --version
 
 ---
 
-## 🏗️ 第二阶段：OpenClaw 安装（20 分钟）
+## 🏗️ 第二阶段：OpenClaw 安装和配置（25 分钟）
 
 ### 2.1 安装 OpenClaw
 
@@ -92,12 +122,24 @@ npm install -g openclaw
 openclaw --version
 ```
 
-### 2.2 克隆仓库
+### 2.2 创建目录结构（标准架构）
 
 ```bash
-# 创建工作目录
-mkdir -p ~/clawd
-cd ~/clawd
+# 创建 OpenClaw 配置目录
+mkdir -p ~/.openclaw
+
+# 创建工作区目录（标准位置）
+mkdir -p ~/.openclaw/workspace
+
+# 创建向后兼容的软链接
+ln -s ~/.openclaw/workspace ~/clawd
+```
+
+### 2.3 克隆仓库到标准位置
+
+```bash
+# 进入工作区
+cd ~/.openclaw/workspace
 
 # 克隆仓库（需要 GitHub 认证）
 git clone https://github.com/JoshZhouSN/my-openclaw.git .
@@ -106,19 +148,29 @@ git clone https://github.com/JoshZhouSN/my-openclaw.git .
 git clone git@github.com:JoshZhouSN/my-openclaw.git .
 ```
 
-### 2.3 恢复 OpenClaw 配置
+### 2.4 恢复 OpenClaw 配置
 
 ```bash
-# 创建配置目录
-mkdir -p ~/.openclaw
+# 复制基础配置到 ~/.openclaw/
+cp ~/.openclaw/workspace/openclaw-config/config.json ~/.openclaw/
 
-# 复制基础配置
-cp ~/clawd/openclaw-config/config.json ~/.openclaw/
-cp ~/clawd/openclaw-config/openclaw.json.template ~/.openclaw/openclaw.json
-
-# 设置权限
-chmod 600 ~/.openclaw/openclaw.json
+# 或者手动创建最小配置
+cat > ~/.openclaw/config.json << 'EOF'
+{
+  "agents": {
+    "defaults": {
+      "workspace": "/home/ubuntu/.openclaw/workspace",
+      "model": "nvidia/moonshotai/kimi-k2.5",
+      "subagents": {
+        "archiveAfterMinutes": 60
+      }
+    }
+  }
+}
+EOF
 ```
+
+**⚠️ 重要：** 确保 `config.json` 中的 `workspace` 指向 `/home/ubuntu/.openclaw/workspace`（新标准位置）
 
 ---
 
@@ -244,7 +296,7 @@ openclaw message send --channel telegram --target "YOUR_USER_ID" --message "Hell
 }
 ```
 
-> 将 `1926016086` 替换为你的 Telegram User ID
+> 将 `1926010086` 替换为你的 Telegram User ID
 
 ---
 
@@ -257,7 +309,7 @@ openclaw message send --channel telegram --target "YOUR_USER_ID" --message "Hell
 sudo timedatectl set-timezone Asia/Shanghai
 ```
 
-### 5.2 配置 Cron Jobs
+### 5.2 配置 Cron Jobs（使用新标准路径）
 
 ```bash
 # 编辑 crontab
@@ -271,11 +323,16 @@ crontab -e
 */5 * * * * curl -fsS -o /dev/null 'https://hc-ping.com/377fe462-b99f-4f93-b33e-65870c4c4ba1'
 
 # Healthchecks.io - openclaw-process monitor (check every 5 min)
-*/5 * * * * /home/ubuntu/clawd/scripts/healthchecks/check-openclaw-process.sh
+*/5 * * * * /home/ubuntu/.openclaw/workspace/scripts/healthchecks/check-openclaw-process.sh
+
+# Update Plus - Daily Backup at 4:00 AM Beijing Time
+0 4 * * * TZ=Asia/Shanghai /home/ubuntu/.openclaw/workspace/scripts/healthchecks/daily-backup.sh
 
 # News report generation - with Healthchecks ping on success
-0 0 * * * TZ=Asia/Shanghai /home/ubuntu/clawd/generate_and_push_news_report.sh && /home/ubuntu/clawd/scripts/healthchecks/ping-cron-monitor.sh "news-report"
+0 0 * * * TZ=Asia/Shanghai /home/ubuntu/.openclaw/workspace/generate_and_push_news_report.sh && /home/ubuntu/.openclaw/workspace/scripts/healthchecks/ping-cron-monitor.sh "news-report"
 ```
+
+**⚠️ 注意：** 路径已更新为 `~/.openclaw/workspace/`，不再是 `~/clawd/`
 
 ### 5.3 验证 Cron Jobs
 
@@ -285,9 +342,59 @@ crontab -l
 
 ---
 
-## 🔍 第六阶段：健康检查配置（10 分钟）
+## 📦 第六阶段：Update Plus 配置（10 分钟）
 
-### 6.1 Healthchecks.io 监控点
+### 6.1 创建 Update Plus 配置
+
+```bash
+cat > ~/.openclaw/update-plus.json << 'EOF'
+{
+  "backup_dir": "/home/ubuntu/.openclaw/backups",
+  "backup_before_update": true,
+  "backup_count": 10,
+  "backup_paths": [
+    {
+      "path": "/home/ubuntu/.openclaw",
+      "label": "config",
+      "exclude": ["backups", "logs", "media", "subagents"]
+    },
+    {
+      "path": "/home/ubuntu/.openclaw/workspace",
+      "label": "workspace",
+      "exclude": [".git", "node_modules", "__pycache__", "*.pyc"]
+    }
+  ],
+  "skills_dirs": [
+    {
+      "path": "/home/ubuntu/.openclaw/workspace/skills",
+      "label": "user",
+      "update": true
+    }
+  ],
+  "notifications": {
+    "enabled": false
+  },
+  "connection_retries": 3,
+  "connection_retry_delay": 60
+}
+EOF
+```
+
+**⚠️ 重要变化：**
+- `backup_paths` 现在指向 `~/.openclaw/workspace/`（新标准）
+- `skills_dirs` 现在指向 `~/.openclaw/workspace/skills/`（不是 `~/.openclaw/skills/`）
+
+### 6.2 创建 update-plus 符号链接
+
+```bash
+ln -s ~/.openclaw/workspace/skills/update-plus/bin/update-plus ~/bin/update-plus
+```
+
+---
+
+## 🔍 第七阶段：健康检查配置（10 分钟）
+
+### 7.1 Healthchecks.io 监控点
 
 | 检查项 | URL | 用途 |
 |--------|-----|------|
@@ -295,41 +402,48 @@ crontab -l
 | openclaw-process | https://hc-ping.com/ac39ce97-859e-4577-9c7a-7f48b04114b8 | 进程监控 |
 | openclaw-cron-jobs | https://hc-ping.com/7971a6ce-4fb5-4d4a-80f8-efbc554f7d10 | Cron 执行监控 |
 
-### 6.2 手动测试监控
+### 7.2 手动测试监控
 
 ```bash
 # 测试心跳
 curl -fsS -o /dev/null 'https://hc-ping.com/377fe462-b99f-4f93-b33e-65870c4c4ba1'
 
 # 测试进程监控脚本
-/home/ubuntu/clawd/scripts/healthchecks/check-openclaw-process.sh
+~/.openclaw/workspace/scripts/healthchecks/check-openclaw-process.sh
 ```
 
 ---
 
-## 📦 第七阶段：Skills 安装（15 分钟）
+## 📦 第八阶段：Skills 安装（15 分钟）
 
-### 7.1 通过 ClawHub 安装 Skills
+### 8.1 Skills 位置说明
+
+**标准架构下，Skills 分布在三个位置：**
+
+| 位置 | 类型 | 数量 | 用途 |
+|------|------|------|------|
+| `~/.openclaw/workspace/skills/` | 用户技能 | 15个 | ✅ **Update Plus 管理** |
+| `~/.openclaw/skills/` | 本地覆盖 | 可选 | 用户自定义覆盖 |
+| `~/openclaw/skills/` | 捆绑技能 | 52个 | 随 OpenClaw 安装 |
+
+### 8.2 通过 ClawHub 安装 Skills
 
 ```bash
-# 进入技能目录
-cd ~/clawd
+# 进入工作区
+cd ~/.openclaw/workspace
 
-# 使用 clawhub 安装（如果有 lock.json）
+# 使用 clawhub 安装（如果有 origin.json）
 clawhub install
 
 # 或者手动链接已克隆的 skills
-ln -sf ~/clawd/skills/agent-browser ~/.openclaw/skills/
-ln -sf ~/clawd/skills/email-tool ~/.openclaw/skills/
-ln -sf ~/clawd/skills/tavily-search ~/.openclaw/skills/
-# ... 其他 skills
+# 用户技能已经在 ~/.openclaw/workspace/skills/ 中（通过 Git 克隆）
 ```
 
-### 7.2 验证 Skills
+### 8.3 验证 Skills
 
 ```bash
-# 列出已安装的技能
-ls -la ~/.openclaw/skills/
+# 列出已安装的用户技能
+ls -la ~/.openclaw/workspace/skills/
 
 # 测试 skill 功能
 openclaw skill list
@@ -337,9 +451,9 @@ openclaw skill list
 
 ---
 
-## ✅ 第八阶段：验证和测试（15 分钟）
+## ✅ 第九阶段：验证和测试（15 分钟）
 
-### 8.1 功能检查清单
+### 9.1 功能检查清单
 
 - [ ] OpenClaw Gateway 运行正常
 - [ ] Telegram 消息可以发送/接收
@@ -349,54 +463,69 @@ openclaw skill list
 - [ ] 新闻报告生成正常
 - [ ] Healthchecks 收到心跳
 - [ ] Cron jobs 执行正常
+- [ ] Update Plus 备份正常
 
-### 8.2 测试命令
+### 9.2 架构验证命令
 
 ```bash
-# 1. 测试 Gateway
-openclaw gateway status
+# 1. 验证目录结构
+echo "=== 目录结构验证 ==="
+ls -la ~/.openclaw/ | grep -E "workspace|skills"
+ls -la ~/clawd  # 应该是软链接
 
-# 2. 测试 Telegram
+# 2. 验证配置
+echo "=== 配置验证 ==="
+grep '"workspace"' ~/.openclaw/config.json | head -1
+grep '"path"' ~/.openclaw/update-plus.json | head -2
+
+# 3. 测试 Update Plus 备份
+echo "=== Update Plus 测试 ==="
+update-plus backup --dry-run
+
+# 4. 测试 Telegram
 curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/sendMessage" \
   -d "chat_id=1926016086" \
   -d "text=Test message from Big-J"
 
-# 3. 测试邮件
+# 5. 测试邮件
 echo "Test body" | mail -s "Test Subject" zhou.zhengchao1@gmail.com
 
-# 4. 测试 Tavily 搜索
-cd ~/clawd && python3 tavily_search_test.py
-
-# 5. 测试浏览器
-cd ~/clawd && python3 test_browser_service.py
+# 6. 测试 Tavily 搜索
+cd ~/.openclaw/workspace && python3 tavily_search_test.py
 ```
 
 ---
 
-## 🆘 第九阶段：备份恢复（如果适用）
+## 📦 第十阶段：备份恢复（如果适用）
 
-### 9.1 使用 Update-Plus 备份
+### 10.1 使用 Update-Plus 恢复
 
 如果你有之前的备份文件：
 
 ```bash
 # 列出可用备份
-bash ~/clawd/skills/update-plus/bin/update-plus list-backups
+update-plus list-backups
 
-# 恢复特定备份
-bash ~/clawd/skills/update-plus/bin/update-plus restore openclaw-backup-YYYY-MM-DD-HH:MM:SS.tar.gz
+# 恢复特定备份（会覆盖当前工作区）
+update-plus restore openclaw-backup-YYYY-MM-DD-HH:MM:SS.tar.gz
 ```
 
-### 9.2 手动解压备份
+### 10.2 手动解压备份
 
 ```bash
 # 解压到临时目录
 tar -xzf openclaw-backup-YYYY-MM-DD-HH:MM:SS.tar.gz -C /tmp/restore
 
 # 恢复配置
-cp -r /tmp/restore/config/* ~/.openclaw/
-cp -r /tmp/restore/workspace/* ~/clawd/
+cp -r /tmp/restore/config/* ~/.openclaw/ 2>/dev/null || true
+
+# 恢复工作区
+cp -r /tmp/restore/workspace/* ~/.openclaw/workspace/
 ```
+
+**⚠️ 注意：** 备份结构已更新，新的备份包含：
+- `config/` → `~/.openclaw/`（排除项外）
+- `workspace/` → `~/.openclaw/workspace/`
 
 ---
 
@@ -414,56 +543,104 @@ tail -f ~/.openclaw/logs/gateway.log
 # 检查端口占用
 sudo lsof -i :18789
 
+# 检查 workspace 路径是否正确
+grep '"workspace"' ~/.openclaw/config.json
+
 # 清理并重启
 pkill -f openclaw
 openclaw gateway start
 ```
 
-### 问题 2: Telegram 消息发送失败
+### 问题 2: Skills 无法加载
 
-**症状：** 消息无法发送到 Telegram
+**症状：** 技能列表为空或报错
 
 **解决：**
 ```bash
-# 1. 检查 Bot Token 是否正确
-# 2. 检查是否已发送 /start 给 Bot
-# 3. 检查 allowFrom 配置
-cat ~/.openclaw/credentials/telegram-allowFrom.json
+# 检查 skills 目录是否存在
+ls ~/.openclaw/workspace/skills/
 
-# 4. 测试 API
-curl "https://api.telegram.org/bot<TOKEN>/getMe"
+# 检查 Update Plus 配置
+cat ~/.openclaw/update-plus.json | jq '.skills_dirs'
+
+# 验证软链接
+ls -la ~/.openclaw/skills  # 应该是软链接或不存在
 ```
 
-### 问题 3: Playwright 浏览器启动失败
+### 问题 3: Cron Jobs 执行失败
 
-**症状：** 浏览器自动化报错
+**症状：** 定时任务没有执行
 
 **解决：**
 ```bash
-# 重新安装浏览器
-python3 -m playwright install chromium
+# 检查路径是否正确（必须是 ~/.openclaw/workspace/）
+crontab -l | grep openclaw
 
-# 检查 Chrome 路径
-which google-chrome
+# 测试脚本权限
+ls -la ~/.openclaw/workspace/scripts/healthchecks/
 
-# 验证安装
-python3 -c "from playwright.sync_api import sync_playwright; print('OK')"
+# 手动执行测试
+~/.openclaw/workspace/scripts/healthchecks/daily-backup.sh
 ```
 
-### 问题 4: 邮件发送失败
+### 问题 4: 软链接问题
 
-**症状：** 邮件无法发送
+**症状：** `~/clawd` 指向错误位置
 
 **解决：**
 ```bash
-# 检查配置
-cat ~/.config/email-tool/config.env
+# 删除错误的软链接
+rm ~/clawd
 
-# 测试 SMTP
-msmtp -S zhou.zhengchao1@gmail.com < /dev/null
+# 重新创建
+ln -s ~/.openclaw/workspace ~/clawd
 
-# 检查 App Password 是否正确
-# 注意：需要 2-Step Verification 才能使用 App Password
+# 验证
+ls -la ~/clawd
+readlink ~/clawd
+```
+
+### 问题 5: Update Plus 备份失败
+
+**症状：** 备份提示路径错误
+
+**解决：**
+```bash
+# 检查配置路径
+cat ~/.openclaw/update-plus.json | jq '.backup_paths'
+
+# 确保路径正确（必须是 ~/.openclaw/workspace/）
+# 如果配置旧了，按第六阶段重新创建
+```
+
+---
+
+## 🆘 紧急回滚
+
+如果迁移后出现问题，恢复到旧架构：
+
+```bash
+#!/bin/bash
+# 紧急回滚脚本
+
+echo "开始回滚到迁移前状态..."
+
+# 1. 恢复配置
+cp ~/.openclaw/config.json.bak ~/.openclaw/config.json 2>/dev/null || true
+
+# 2. 删除新软链接
+rm -f ~/.openclaw/workspace
+rm -f ~/.openclaw/skills
+
+# 3. 恢复旧软链接
+mv ~/.openclaw/workspace-old-link ~/.openclaw/workspace 2>/dev/null || true
+mv ~/.openclaw/skills-old-link ~/.openclaw/skills 2>/dev/null || true
+
+# 4. 恢复 clawd 目录
+rm -f ~/clawd
+mv ~/clawd.backup ~/clawd 2>/dev/null || true
+
+echo "回滚完成！请重启 OpenClaw"
 ```
 
 ---
@@ -478,10 +655,25 @@ msmtp -S zhou.zhengchao1@gmail.com < /dev/null
 
 ## 📝 更新记录
 
-| 日期 | 更新内容 |
-|------|----------|
-| 2026-02-12 | 初始版本，基于当前系统配置 |
+| 日期 | 版本 | 更新内容 |
+|------|------|----------|
+| 2026-02-13 | v2.0 | 迁移到标准架构：`~/.openclaw/workspace/` |
+| 2026-02-12 | v1.0 | 初始版本，基于 `~/clawd/` 架构 |
+
+### 架构变更摘要（v1.0 → v2.0）
+
+| 项目 | 旧架构 | 新架构（标准） |
+|------|--------|----------------|
+| 工作区 | `~/clawd/` | `~/.openclaw/workspace/` |
+| Skills | `~/.openclaw/skills/` | `~/.openclaw/workspace/skills/` |
+| 软链接 | `~/.openclaw/skills → ~/clawd/skills` | `~/clawd → ~/.openclaw/workspace` |
+| Cron 路径 | `~/clawd/...` | `~/.openclaw/workspace/...` |
+| Update Plus | `~/.openclaw/skills/` | `~/.openclaw/workspace/skills/` |
 
 ---
 
-**提醒：** 定期更新此手册，特别是 API Keys 变更时！
+**提醒：**
+1. 定期更新此手册
+2. 测试备份恢复流程
+3. 保持 API Keys 安全
+4. 监控 Healthchecks 状态
